@@ -14,9 +14,7 @@ export async function POST(req: NextRequest) {
     const entriesText = entries
       .slice(0, type === "monthly" ? 30 : 7)
       .map((e: any) => `[${e.createdAt?.slice(0, 10) || ""}] ${e.mood?.toUpperCase() || ""}: ${e.rawText || ""}`)
-      .join("
-
-")
+      .join("\n")
 
     const prompt = type === "monthly"
       ? PROMPTS.monthlySummary(entriesText)
