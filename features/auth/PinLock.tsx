@@ -16,10 +16,10 @@ export function PinLock() {
   const [attempts, setAttempts] = useState(0)
   const [shaking, setShaking] = useState(false)
 
-  const maxPinLength = 4
+  const maxPinLength = 6
 
   useEffect(() => {
-   if (pin.length === maxPinLength && !shaking) { 
+   if (pin.length === 4 && !shaking) { 
       handleVerify()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
