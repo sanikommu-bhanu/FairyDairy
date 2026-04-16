@@ -71,7 +71,9 @@ export function calculateStreak(entries: Entry[]): StreakInfo {
     return { current: 0, longest: 0, isActive: false, lastEntry: null }
   }
 
-  const dates = [...new Set(entries.map((e) => e.createdAt.slice(0, 10)))].sort().reverse()
+const dates = Array.from(
+  new Set(entries.map((e) => e.createdAt.slice(0, 10)))
+);
   const today = new Date().toISOString().slice(0, 10)
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
 
