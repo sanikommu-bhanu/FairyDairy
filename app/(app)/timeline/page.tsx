@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Filter, X, Heart, SortDesc, SortAsc } from "lucide-react"
+import { Search, Filter, X, Heart, SortDesc, SortAsc, Images, List } from "lucide-react"
 import { useEntries } from "@/hooks/useEntries"
 import { EntryCard } from "@/features/entries/EntryCard"
 import { EntryModal } from "@/features/entries/EntryModal"
+import { AlbumGallery } from "@/features/media/AlbumGallery"
 import { cn, formatMonthYear } from "@/lib/utils"
 import { MOOD_CONFIG } from "@/types"
 import type { Entry, Mood } from "@/types"
@@ -21,6 +22,7 @@ export default function TimelinePage() {
   const [sort, setSort] = useState<SortOrder>("newest")
   const [showFilters, setShowFilters] = useState(false)
   const [selectedEntry, setSelectedEntry] = useState<Entry | null>(null)
+  const [viewMode, setViewMode] = useState<"list" | "album">("list")
 
   const allTags = getAllTags()
   const moods = Object.keys(MOOD_CONFIG) as Mood[]
@@ -100,6 +102,33 @@ export default function TimelinePage() {
           {sort === "newest" ? <SortDesc size={16} /> : <SortAsc size={16} />}
         </button>
       </motion.div>
+
+      <div className="mb-4">
+        <div className="glass rounded-2xl p-1 border border-fairy-border/35 inline-flex w-full">
+          <button
+            type="button"
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "flex-1 rounded-xl py-2 text-sm flex items-center justify-center gap-1.5",
+              viewMode === "list" ? "bg-fairy-purple/20 text-fairy-purple" : "text-fairy-text-muted"
+            )}
+          >
+            <List size={14} />
+            Timeline
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("album")}
+            className={cn(
+              "flex-1 rounded-xl py-2 text-sm flex items-center justify-center gap-1.5",
+              viewMode === "album" ? "bg-fairy-purple/20 text-fairy-purple" : "text-fairy-text-muted"
+            )}
+          >
+            <Images size={14} />
+            Album
+          </button>
+        </div>
+      </div>
 
       {/* Filters panel */}
       <AnimatePresence>
@@ -215,31 +244,34 @@ export default function TimelinePage() {
         </motion.div>
       )}
 
-      {/* Grouped entries */}
-      <div className="space-y-6">
-        {grouped.map(([month, monthEntries]) => (
-          <motion.div
-            key={month}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <p className="text-xs text-fairy-text-muted/70 font-medium uppercase tracking-wider mb-3">
-              {formatMonthYear(month + "-01")}
-              <span className="ml-2 text-fairy-text-muted/40">({monthEntries.length})</span>
-            </p>
-            <div className="space-y-3">
-              {monthEntries.map((entry, i) => (
-                <EntryCard
-                  key={entry.id}
-                  entry={entry}
-                  onClick={() => setSelectedEntry(entry)}
-                  index={i}
-                />
-              ))}
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      {viewMode === "album" ? (
+        <AlbumGallery entries={filtered} />
+      ) : (
+        <div className="space-y-6">
+          {grouped.map(([month, monthEntries]) => (
+            <motion.div
+              key={month}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <p className="text-xs text-fairy-text-muted/70 font-medium uppercase tracking-wider mb-3">
+                {formatMonthYear(month + "-01")}
+                <span className="ml-2 text-fairy-text-muted/40">({monthEntries.length})</span>
+              </p>
+              <div className="space-y-3">
+                {monthEntries.map((entry, i) => (
+                  <EntryCard
+                    key={entry.id}
+                    entry={entry}
+                    onClick={() => setSelectedEntry(entry)}
+                    index={i}
+                  />
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       <EntryModal entry={selectedEntry} onClose={() => setSelectedEntry(null)} />
     </div>

@@ -39,17 +39,22 @@ export interface Media {
   createdAt: string
 }
 
+export type AppTheme = 'fairy-purple' | 'rose-pink' | 'ocean-blue' | 'midnight-dark'
+export type PinLength = 4 | 6
+
 export interface AppSettings {
   pinHash: string | null
+  pinLength: PinLength
   hasOnboarded: boolean
   animationsEnabled: boolean
-  theme: 'dark' | 'auto'
+  theme: AppTheme
   streakDays: number
   longestStreak: number
   lastEntryDate: string | null
   displayName?: string
   reminderEnabled: boolean
   reminderTime?: string
+  biometricEnabled?: boolean
 }
 
 export interface DailyMood {

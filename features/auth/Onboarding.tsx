@@ -8,6 +8,7 @@ import { setPIN } from "@/lib/auth"
 import { createSession } from "@/lib/auth"
 import { MagicButton } from "@/components/ui/MagicButton"
 import { cn } from "@/lib/utils"
+import type { PinLength } from "@/types"
 
 const STEPS = ["welcome", "name", "pin", "confirm", "done"] as const
 type Step = (typeof STEPS)[number]
@@ -19,6 +20,7 @@ export function Onboarding() {
   const [name, setName] = useState("")
   const [pin, setPin] = useState("")
   const [confirm, setConfirm] = useState("")
+  const [pinLength, setPinLength] = useState<PinLength>(4)
   const [pinError, setPinError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
@@ -28,7 +30,7 @@ export function Onboarding() {
     if (step === "welcome") { setStep("name"); return }
     if (step === "name") { setStep("pin"); return }
     if (step === "pin") {
-      if (pin.length < 4) { setPinError("Please enter a 4-digit PIN"); return }
+      if (pin.length !== pinLength) { setPinError(`Please enter a ${pinLength}-digit PIN`); return }
       setPinError("")
       setStep("confirm")
       return
@@ -40,12 +42,13 @@ export function Onboarding() {
         return
       }
       setIsLoading(true)
-      await setPIN(pin)
+      await setPIN(pin, pinLength)
       const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin + "fairy_salt_2024"))
       const hashHex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("")
       updateSettings({
         hasOnboarded: true,
         pinHash: hashHex,
+        pinLength,
         displayName: name || undefined,
       })
       createSession()
@@ -165,14 +168,34 @@ export function Onboarding() {
                   Create your PIN
                 </h2>
                 <p className="text-fairy-text-muted text-sm">
-                  Keep your diary private with a 4-6 digit PIN
+                  Choose a secure 4-digit or 6-digit PIN
                 </p>
               </div>
-              <PinInput value={pin} onChange={setPin} error={pinError} />
+              <div className="grid grid-cols-2 gap-2 w-full">
+                {[4, 6].map((len) => (
+                  <button
+                    key={len}
+                    type="button"
+                    onClick={() => {
+                      setPinLength(len as PinLength)
+                      setPin("")
+                      setConfirm("")
+                      setPinError("")
+                    }}
+                    className={cn(
+                      "glass rounded-xl py-2 text-sm border",
+                      pinLength === len ? "border-fairy-purple text-fairy-purple" : "border-fairy-border text-fairy-text-muted"
+                    )}
+                  >
+                    {len}-digit PIN
+                  </button>
+                ))}
+              </div>
+              <PinInput value={pin} onChange={setPin} error={pinError} maxLength={pinLength} />
               {pinError && (
                 <p className="text-red-400 text-sm">{pinError}</p>
               )}
-              <MagicButton size="lg" className="w-full" onClick={handleNext} disabled={pin.length < 4}>
+              <MagicButton size="lg" className="w-full" onClick={handleNext} disabled={pin.length !== pinLength}>
                 Set PIN
               </MagicButton>
               <button
@@ -191,13 +214,13 @@ export function Onboarding() {
                 <h2 className="font-display text-3xl font-bold text-fairy-text mb-2">
                   Confirm your PIN
                 </h2>
-                <p className="text-fairy-text-muted text-sm">Enter the same PIN again</p>
+                <p className="text-fairy-text-muted text-sm">Enter the same {pinLength}-digit PIN again</p>
               </div>
-              <PinInput value={confirm} onChange={setConfirm} error={pinError} />
+              <PinInput value={confirm} onChange={setConfirm} error={pinError} maxLength={pinLength} />
               {pinError && (
                 <p className="text-red-400 text-sm">{pinError}</p>
               )}
-              <MagicButton size="lg" className="w-full" onClick={handleNext} loading={isLoading} disabled={confirm.length < 4}>
+              <MagicButton size="lg" className="w-full" onClick={handleNext} loading={isLoading} disabled={confirm.length !== pinLength}>
                 Confirm
               </MagicButton>
             </div>
@@ -248,7 +271,7 @@ function PinInput({
     <div className="flex flex-col items-center gap-6">
       {/* Dots */}
       <div className="flex gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: maxLength }).map((_, i) => (
           <div
             key={i}
             className={cn(

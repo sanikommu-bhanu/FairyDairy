@@ -1,13 +1,12 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { ImageIcon, Video, X, Plus } from "lucide-react"
+import { useState, useRef, useEffect } from "react"
+import { motion } from "framer-motion"
+import { ImageIcon, X, Plus } from "lucide-react"
 import { saveMedia, loadMedia, deleteMedia } from "@/lib/storage"
 import { generateId } from "@/lib/utils"
 import { showToast } from "@/components/ui/Toast"
 import type { Media } from "@/types"
-import Image from "next/image"
 
 interface MediaPickerProps {
   mediaIds: string[]
@@ -18,6 +17,25 @@ export function MediaPicker({ mediaIds, onChange }: MediaPickerProps) {
   const [previews, setPreviews] = useState<{ id: string; dataUrl: string; type: string }[]>([])
   const [loading, setLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    const hydrate = async () => {
+      const loaded = await Promise.all(mediaIds.map((id) => loadMedia(id)))
+      if (!mounted) return
+      const next = loaded
+        .filter((item): item is Media => !!item)
+        .map((item) => ({ id: item.id, dataUrl: item.dataUrl, type: item.type }))
+      setPreviews(next)
+    }
+
+    hydrate().catch(() => undefined)
+
+    return () => {
+      mounted = false
+    }
+  }, [mediaIds])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -47,7 +65,6 @@ export function MediaPicker({ mediaIds, onChange }: MediaPickerProps) {
     }
 
     onChange([...mediaIds, ...newIds])
-    setPreviews((p) => [...p, ...newPreviews])
     setLoading(false)
     e.target.value = ""
   }

@@ -5,7 +5,7 @@ import { subscribeWithSelector } from "zustand/middleware"
 import type { Entry, AppSettings, Mood } from "@/types"
 import { loadEntries, saveEntries, loadSettings, saveSettings } from "@/lib/storage"
 import { generateId, calculateStreak } from "@/lib/utils"
-import { isSessionValid, destroySession } from "@/lib/auth"
+import { isSessionValid, destroySession, getPINHash, getPINLength } from "@/lib/auth"
 
 interface AppState {
   // Data
@@ -38,14 +38,16 @@ export const useAppStore = create<AppState>()(
     entries: [],
     settings: {
       pinHash: null,
+      pinLength: 4,
       hasOnboarded: false,
       animationsEnabled: true,
-      theme: "dark",
+      theme: "fairy-purple",
       streakDays: 0,
       longestStreak: 0,
       lastEntryDate: null,
       reminderEnabled: false,
       reminderTime: "20:00",
+      biometricEnabled: false,
     },
     isLocked: true,
     isHydrated: false,
@@ -53,15 +55,21 @@ export const useAppStore = create<AppState>()(
     selectedEntryId: null,
 
     hydrate: () => {
+      if (get().isHydrated) return
+
       const entries = loadEntries()
       const settings = loadSettings()
       const sessionValid = isSessionValid()
-      const needsLock = settings.hasOnboarded && settings.pinHash && !sessionValid
+      const pinHash = getPINHash()
+      const pinLength = getPINLength()
+      const needsLock = settings.hasOnboarded && !!pinHash && !sessionValid
 
       // Update streak info
       const streakInfo = calculateStreak(entries)
       const updatedSettings = {
         ...settings,
+        pinHash,
+        pinLength,
         streakDays: streakInfo.current,
         longestStreak: streakInfo.longest,
       }
@@ -144,14 +152,16 @@ export const useAppStore = create<AppState>()(
         entries: [],
         settings: {
           pinHash: null,
+          pinLength: 4,
           hasOnboarded: false,
           animationsEnabled: true,
-          theme: "dark",
+          theme: "fairy-purple",
           streakDays: 0,
           longestStreak: 0,
           lastEntryDate: null,
           reminderEnabled: false,
           reminderTime: "20:00",
+          biometricEnabled: false,
         },
         isLocked: true,
       })

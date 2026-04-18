@@ -2,16 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap");
-
 :root {
   --font-playfair: "Playfair Display", Georgia, serif;
   --font-inter: "Inter", system-ui, sans-serif;
-  --fairy-purple: #c084fc;
-  --fairy-rose: #f472b6;
-  --fairy-dark: #0d0618;
-  --fairy-border: rgba(255, 255, 255, 0.1);
-  --fairy-glass: rgba(255, 255, 255, 0.05);
+
+  --fairy-purple-rgb: 192 132 252;
+  --fairy-purple-dark-rgb: 147 51 234;
+  --fairy-rose-rgb: 244 114 182;
+  --fairy-rose-dark-rgb: 236 72 153;
+  --fairy-lavender-rgb: 233 213 255;
+
+  --fairy-dark-rgb: 13 6 24;
+  --fairy-dark-2-rgb: 21 13 40;
+  --fairy-dark-3-rgb: 30 16 64;
+
+  --fairy-bg-start-rgb: 26 5 51;
+  --fairy-bg-mid-rgb: 13 6 24;
+  --fairy-bg-end-rgb: 19 13 48;
+
+  --fairy-text-rgb: 226 217 243;
+  --fairy-text-muted-rgb: 157 142 192;
+  --fairy-border-rgb: 112 99 144;
+  --fairy-glass-rgb: 255 255 255;
+}
+
+[data-theme="fairy-purple"] {
+  --fairy-purple-rgb: 192 132 252;
+  --fairy-purple-dark-rgb: 147 51 234;
+  --fairy-rose-rgb: 244 114 182;
+  --fairy-rose-dark-rgb: 236 72 153;
+  --fairy-lavender-rgb: 233 213 255;
+  --fairy-bg-start-rgb: 26 5 51;
+  --fairy-bg-mid-rgb: 13 6 24;
+  --fairy-bg-end-rgb: 19 13 48;
+  --fairy-text-rgb: 226 217 243;
+  --fairy-text-muted-rgb: 157 142 192;
+  --fairy-border-rgb: 112 99 144;
+}
+
+[data-theme="rose-pink"] {
+  --fairy-purple-rgb: 251 113 133;
+  --fairy-purple-dark-rgb: 225 29 72;
+  --fairy-rose-rgb: 244 114 182;
+  --fairy-rose-dark-rgb: 219 39 119;
+  --fairy-lavender-rgb: 251 207 232;
+  --fairy-bg-start-rgb: 76 15 46;
+  --fairy-bg-mid-rgb: 45 12 31;
+  --fairy-bg-end-rgb: 71 17 46;
+  --fairy-text-rgb: 254 242 248;
+  --fairy-text-muted-rgb: 244 180 211;
+  --fairy-border-rgb: 143 80 113;
+}
+
+[data-theme="ocean-blue"] {
+  --fairy-purple-rgb: 56 189 248;
+  --fairy-purple-dark-rgb: 2 132 199;
+  --fairy-rose-rgb: 34 211 238;
+  --fairy-rose-dark-rgb: 14 165 233;
+  --fairy-lavender-rgb: 186 230 253;
+  --fairy-bg-start-rgb: 8 47 73;
+  --fairy-bg-mid-rgb: 9 26 44;
+  --fairy-bg-end-rgb: 11 36 66;
+  --fairy-text-rgb: 224 242 254;
+  --fairy-text-muted-rgb: 148 194 220;
+  --fairy-border-rgb: 88 123 157;
+}
+
+[data-theme="midnight-dark"] {
+  --fairy-purple-rgb: 129 140 248;
+  --fairy-purple-dark-rgb: 99 102 241;
+  --fairy-rose-rgb: 148 163 184;
+  --fairy-rose-dark-rgb: 100 116 139;
+  --fairy-lavender-rgb: 203 213 225;
+  --fairy-bg-start-rgb: 2 6 23;
+  --fairy-bg-mid-rgb: 15 23 42;
+  --fairy-bg-end-rgb: 3 7 18;
+  --fairy-text-rgb: 226 232 240;
+  --fairy-text-muted-rgb: 148 163 184;
+  --fairy-border-rgb: 71 85 105;
 }
 
 * {
@@ -26,9 +94,9 @@ html, body {
 }
 
 body {
-  background: linear-gradient(135deg, #1a0533 0%, #0d0618 50%, #130d30 100%);
+  background: linear-gradient(135deg, rgb(var(--fairy-bg-start-rgb)) 0%, rgb(var(--fairy-bg-mid-rgb)) 50%, rgb(var(--fairy-bg-end-rgb)) 100%);
   min-height: 100vh;
-  color: #e2d9f3;
+  color: rgb(var(--fairy-text-rgb));
   font-family: var(--font-inter);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -52,24 +120,24 @@ body {
 
 /* Glass morphism utility */
 .glass {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgb(var(--fairy-glass-rgb) / 0.06);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgb(var(--fairy-border-rgb) / 0.45);
 }
 
 .glass-dark {
-  background: rgba(13, 6, 24, 0.6);
+  background: rgb(var(--fairy-bg-mid-rgb) / 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgb(var(--fairy-border-rgb) / 0.35);
 }
 
 .glass-purple {
-  background: rgba(192, 132, 252, 0.08);
+  background: rgb(var(--fairy-purple-rgb) / 0.1);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(192, 132, 252, 0.2);
+  border: 1px solid rgb(var(--fairy-purple-rgb) / 0.35);
 }
 
 /* Shimmer animation */
@@ -94,16 +162,16 @@ body {
 }
 
 .text-glow {
-  text-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+  text-shadow: 0 0 20px rgb(var(--fairy-purple-rgb) / 0.5);
 }
 
 .text-glow-rose {
-  text-shadow: 0 0 20px rgba(244, 114, 182, 0.5);
+  text-shadow: 0 0 20px rgb(var(--fairy-rose-rgb) / 0.5);
 }
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #c084fc, #f472b6);
+  background: linear-gradient(135deg, rgb(var(--fairy-purple-rgb)), rgb(var(--fairy-rose-rgb)));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -232,7 +300,7 @@ button:focus-visible {
   font-family: var(--font-playfair);
   line-height: 1.85;
   font-size: 1.05rem;
-  color: #e2d9f3;
+  color: rgb(var(--fairy-text-rgb));
 }
 
 /* Star field */

@@ -14,8 +14,8 @@ export const metadata: Metadata = {
     title: "FairyDiary",
   },
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/icon-192.png",
+    icon: "/icons/icon-512.svg",
+    apple: "/icons/icon-512.svg",
   },
 }
 

@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { PenLine, Lock, Flame, Star, BookOpen, ChevronRight } from "lucide-react"
 import { useAppStore } from "@/store/app-store"
 import { useEntries } from "@/hooks/useEntries"
@@ -17,6 +18,7 @@ import { getGreeting, cn } from "@/lib/utils"
 import type { Entry, Mood } from "@/types"
 
 export default function HomePage() {
+  const router = useRouter()
   const { settings, lock, setCurrentMood } = useAppStore()
   const { recentEntries, todayEntries, getThisDayLastYear, totalCount } = useEntries()
   const { currentStreak, longestStreak, hasWrittenToday, streakMessage } = useStreak()
@@ -54,7 +56,10 @@ export default function HomePage() {
           </motion.p>
         </div>
         <button
-          onClick={lock}
+          onClick={() => {
+            lock()
+            router.replace("/lock")
+          }}
           className="p-2 glass rounded-xl text-fairy-text-muted hover:text-fairy-rose transition-colors mt-1"
         >
           <Lock size={18} />

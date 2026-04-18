@@ -19,6 +19,7 @@ export function EntryCard({ entry, onClick, compact = false, index = 0 }: EntryC
   const { toggleFavorite, deleteEntry } = useAppStore()
   const mood = MOOD_CONFIG[entry.mood]
   const displayText = entry.enhancedText || entry.rawText
+  const mediaCount = entry.mediaIds?.length ?? 0
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -144,8 +145,8 @@ export function EntryCard({ entry, onClick, compact = false, index = 0 }: EntryC
               <span className="text-xs text-fairy-text-muted/60">
                 {countWords(displayText)} words
               </span>
-              {entry.mediaIds.length > 0 && (
-                <span className="text-xs text-fairy-text-muted/60">📎 {entry.mediaIds.length}</span>
+              {mediaCount > 0 && (
+                <span className="text-xs text-fairy-text-muted/60">📎 {mediaCount}</span>
               )}
               {entry.gratitude && (
                 <span className="text-xs text-amber-400/60">🙏 Grateful</span>

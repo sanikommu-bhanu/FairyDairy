@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import {
   Lock, Download, Upload, Trash2, Palette,
-  Sparkles, Info, ChevronRight, Shield, Moon
+  Info, ChevronRight, Shield, HardDrive, Fingerprint
 } from "lucide-react"
 import { useAppStore } from "@/store/app-store"
 import { useSettings } from "@/hooks/useSettings"
@@ -15,19 +15,49 @@ import { useEntries } from "@/hooks/useEntries"
 import { MagicButton } from "@/components/ui/MagicButton"
 import { showToast } from "@/components/ui/Toast"
 import { cn } from "@/lib/utils"
+import { applyTheme, THEME_OPTIONS } from "@/lib/theme"
+import { clearAllMedia, getStorageStats } from "@/lib/storage"
 import type { Entry } from "@/types"
 
 export default function SettingsPage() {
   const router = useRouter()
   const { settings, lock, clearAllData } = useAppStore()
-  const { updateSettings, toggleAnimations } = useSettings()
+  const { updateSettings, toggleAnimations, setTheme } = useSettings()
   const { entries } = useEntries()
   const [showChangePIN, setShowChangePIN] = useState(false)
   const [oldPin, setOldPin] = useState("")
   const [newPin, setNewPin] = useState("")
   const [confirmPin, setConfirmPin] = useState("")
+  const [newPinLength, setNewPinLength] = useState<4 | 6>(settings.pinLength)
   const [pinError, setPinError] = useState("")
   const [changingPin, setChangingPin] = useState(false)
+  const [storageInfo, setStorageInfo] = useState({
+    entryCount: 0,
+    mediaCount: 0,
+    entriesBytes: 0,
+    mediaBytes: 0,
+    totalBytes: 0,
+  })
+
+  useEffect(() => {
+    let mounted = true
+    getStorageStats(entries).then((data) => {
+      if (mounted) setStorageInfo(data)
+    }).catch(() => {
+      if (mounted) {
+        setStorageInfo({ entryCount: entries.length, mediaCount: 0, entriesBytes: 0, mediaBytes: 0, totalBytes: 0 })
+      }
+    })
+    return () => {
+      mounted = false
+    }
+  }, [entries])
+
+  useEffect(() => {
+    setNewPinLength(settings.pinLength)
+  }, [settings.pinLength])
+
+  const formattedStorage = useMemo(() => formatBytes(storageInfo.totalBytes), [storageInfo.totalBytes])
 
   const handleExport = () => {
     exportToJSON(entries)
@@ -65,9 +95,13 @@ export default function SettingsPage() {
   const handleClearData = () => {
     if (!confirm("This will permanently delete ALL your diary entries and settings. This cannot be undone. Are you absolutely sure?")) return
     if (!confirm("Last chance — are you sure you want to delete everything?")) return
-    clearAllData()
-    showToast("All data cleared")
-    router.replace("/onboarding")
+    clearAllMedia()
+      .catch(() => undefined)
+      .finally(() => {
+        clearAllData()
+        showToast("All data cleared")
+        router.replace("/onboarding")
+      })
   }
 
   const handleChangePIN = async () => {
@@ -76,11 +110,12 @@ export default function SettingsPage() {
       const valid = await verifyPIN(oldPin)
       if (!valid) { setPinError("Current PIN is incorrect"); return }
     }
-    if (newPin.length < 4) { setPinError("New PIN must be at least 4 digits"); return }
+    if (!/^\d+$/.test(newPin)) { setPinError("PIN must contain only digits"); return }
+    if (newPin.length !== newPinLength) { setPinError(`PIN must be exactly ${newPinLength} digits`); return }
     if (newPin !== confirmPin) { setPinError("PINs do not match"); return }
     setChangingPin(true)
-    await setPIN(newPin)
-    updateSettings({ pinHash: "set" })
+    await setPIN(newPin, newPinLength)
+    updateSettings({ pinHash: "set", pinLength: newPinLength })
     showToast("PIN updated! 🔒")
     setShowChangePIN(false)
     setOldPin(""); setNewPin(""); setConfirmPin("")
@@ -92,10 +127,15 @@ export default function SettingsPage() {
     const valid = await verifyPIN(oldPin)
     if (!valid) { setPinError("Current PIN is incorrect"); return }
     removePIN()
-    updateSettings({ pinHash: null })
+    updateSettings({ pinHash: null, pinLength: 4 })
     showToast("PIN removed")
     setShowChangePIN(false)
     setOldPin("")
+  }
+
+  const handleThemeChange = (themeId: typeof settings.theme) => {
+    setTheme(themeId)
+    applyTheme(themeId)
   }
 
   return (
@@ -112,7 +152,7 @@ export default function SettingsPage() {
           <SettingRow
             icon={<Lock size={16} className="text-fairy-purple" />}
             label={settings.pinHash ? "Change PIN" : "Set up PIN"}
-            sub={settings.pinHash ? "Update your diary PIN" : "Protect your diary with a PIN"}
+            sub={settings.pinHash ? `Update your ${settings.pinLength}-digit PIN` : "Protect your diary with a PIN"}
             onClick={() => setShowChangePIN(!showChangePIN)}
           />
           {showChangePIN && (
@@ -126,17 +166,39 @@ export default function SettingsPage() {
                   type="password"
                   placeholder="Current PIN"
                   value={oldPin}
-                  onChange={(e) => setOldPin(e.target.value)}
+                  onChange={(e) => setOldPin(e.target.value.replace(/\D/g, "").slice(0, settings.pinLength))}
                   maxLength={6}
                   inputMode="numeric"
                   className="w-full glass rounded-xl px-3 py-2 text-sm text-fairy-text placeholder-fairy-text-muted/40 focus:outline-none border border-fairy-border"
                 />
               )}
+              <div className="grid grid-cols-2 gap-2">
+                {[4, 6].map((len) => (
+                  <button
+                    key={len}
+                    type="button"
+                    onClick={() => {
+                      setNewPinLength(len as 4 | 6)
+                      setNewPin("")
+                      setConfirmPin("")
+                      setPinError("")
+                    }}
+                    className={cn(
+                      "rounded-xl py-2 text-xs border",
+                      newPinLength === len
+                        ? "border-fairy-purple text-fairy-purple bg-fairy-purple/10"
+                        : "border-fairy-border text-fairy-text-muted"
+                    )}
+                  >
+                    {len}-digit PIN
+                  </button>
+                ))}
+              </div>
               <input
                 type="password"
-                placeholder="New PIN (4-6 digits)"
+                placeholder={`New PIN (${newPinLength} digits)`}
                 value={newPin}
-                onChange={(e) => setNewPin(e.target.value)}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, newPinLength))}
                 maxLength={6}
                 inputMode="numeric"
                 className="w-full glass rounded-xl px-3 py-2 text-sm text-fairy-text placeholder-fairy-text-muted/40 focus:outline-none border border-fairy-border"
@@ -145,7 +207,7 @@ export default function SettingsPage() {
                 type="password"
                 placeholder="Confirm new PIN"
                 value={confirmPin}
-                onChange={(e) => setConfirmPin(e.target.value)}
+                onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, newPinLength))}
                 maxLength={6}
                 inputMode="numeric"
                 className="w-full glass rounded-xl px-3 py-2 text-sm text-fairy-text placeholder-fairy-text-muted/40 focus:outline-none border border-fairy-border"
@@ -161,6 +223,14 @@ export default function SettingsPage() {
                   </MagicButton>
                 )}
               </div>
+              <button
+                type="button"
+                className="w-full glass rounded-xl py-2 text-xs text-fairy-text-muted hover:text-fairy-text flex items-center justify-center gap-2"
+                onClick={() => showToast("Biometric unlock coming soon", "info")}
+              >
+                <Fingerprint size={14} />
+                Enable biometric unlock (coming soon)
+              </button>
             </motion.div>
           )}
           <SettingRow
@@ -180,6 +250,27 @@ export default function SettingsPage() {
 
         {/* Appearance */}
         <Section title="Appearance" icon={<Palette size={16} />}>
+          <div className="grid grid-cols-2 gap-2 p-4">
+            {THEME_OPTIONS.map((theme) => {
+              const active = settings.theme === theme.id
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => handleThemeChange(theme.id)}
+                  className={cn(
+                    "rounded-2xl border p-3 text-left transition-all",
+                    active
+                      ? "border-fairy-purple bg-fairy-purple/12 shadow-fairy"
+                      : "border-fairy-border bg-white/5"
+                  )}
+                >
+                  <p className="text-sm text-fairy-text font-medium">{theme.emoji} {theme.name}</p>
+                  <p className="text-[11px] text-fairy-text-muted/70 mt-1">{theme.description}</p>
+                </button>
+              )
+            })}
+          </div>
           <div className="px-4 py-3 flex items-center justify-between">
             <div>
               <p className="text-sm text-fairy-text">Animations</p>
@@ -197,6 +288,21 @@ export default function SettingsPage() {
                 settings.animationsEnabled ? "left-7" : "left-1"
               )} />
             </button>
+          </div>
+        </Section>
+
+        <Section title="Storage" icon={<HardDrive size={16} />}>
+          <div className="px-4 py-3 grid grid-cols-2 gap-2">
+            <StorageStat label="Entries" value={String(storageInfo.entryCount)} />
+            <StorageStat label="Media Files" value={String(storageInfo.mediaCount)} />
+            <StorageStat label="Entries Size" value={formatBytes(storageInfo.entriesBytes)} />
+            <StorageStat label="Media Size" value={formatBytes(storageInfo.mediaBytes)} />
+          </div>
+          <div className="px-4 pb-4">
+            <div className="glass rounded-xl p-3 border border-fairy-border/30">
+              <p className="text-xs text-fairy-text-muted/70">Total local storage used</p>
+              <p className="text-base text-fairy-text font-semibold mt-1">{formattedStorage}</p>
+            </div>
           </div>
         </Section>
 
@@ -255,6 +361,15 @@ export default function SettingsPage() {
   )
 }
 
+function StorageStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="glass rounded-xl p-3 border border-fairy-border/30">
+      <p className="text-[11px] text-fairy-text-muted/70">{label}</p>
+      <p className="text-sm text-fairy-text font-medium mt-1">{value}</p>
+    </div>
+  )
+}
+
 function Section({
   title,
   icon,
@@ -287,6 +402,18 @@ function Section({
       {children}
     </motion.div>
   )
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes) return "0 B"
+  const units = ["B", "KB", "MB", "GB"]
+  let value = bytes
+  let index = 0
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024
+    index += 1
+  }
+  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`
 }
 
 function SettingRow({

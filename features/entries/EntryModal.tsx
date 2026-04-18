@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, Heart, Edit, Share } from "lucide-react"
 import { formatEntryDate, formatRelativeTime, countWords } from "@/lib/utils"
@@ -8,7 +9,8 @@ import { useAppStore } from "@/store/app-store"
 import { showToast } from "@/components/ui/Toast"
 import { MagicButton } from "@/components/ui/MagicButton"
 import { useRouter } from "next/navigation"
-import type { Entry } from "@/types"
+import { loadMedia } from "@/lib/storage"
+import type { Entry, Media } from "@/types"
 
 interface EntryModalProps {
   entry: Entry | null
@@ -19,21 +21,42 @@ interface EntryModalProps {
 export function EntryModal({ entry, onClose, onEdit }: EntryModalProps) {
   const { toggleFavorite } = useAppStore()
   const router = useRouter()
-
-  if (!entry) return null
-
-  const mood = MOOD_CONFIG[entry.mood]
-  const displayText = entry.enhancedText || entry.rawText
+  const [mediaItems, setMediaItems] = useState<Media[]>([])
+  const [viewerMedia, setViewerMedia] = useState<Media | null>(null)
 
   const handleFavorite = () => {
+    if (!entry) return
     toggleFavorite(entry.id)
     showToast(entry.favorite ? "Removed from favorites" : "Added to favorites ❤️")
   }
 
   const handleEdit = () => {
+    if (!entry) return
     onClose()
     router.push(`/write?id=${entry.id}`)
   }
+
+  useEffect(() => {
+    let mounted = true
+    const run = async () => {
+      if (!entry?.mediaIds?.length) {
+        setMediaItems([])
+        return
+      }
+      const list = await Promise.all(entry.mediaIds.map((id) => loadMedia(id)))
+      if (!mounted) return
+      setMediaItems(list.filter((item): item is Media => !!item))
+    }
+    run().catch(() => setMediaItems([]))
+    return () => {
+      mounted = false
+    }
+  }, [entry?.id, entry?.mediaIds])
+
+  if (!entry) return null
+
+  const mood = MOOD_CONFIG[entry.mood]
+  const displayText = entry.enhancedText || entry.rawText
 
   return (
     <AnimatePresence>
@@ -138,6 +161,28 @@ export function EntryModal({ entry, onClose, onEdit }: EntryModalProps) {
                     ))}
                   </div>
                 )}
+
+                {mediaItems.length > 0 && (
+                  <div>
+                    <p className="text-xs text-fairy-text-muted/70 mb-2">Media</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {mediaItems.map((media) => (
+                        <button
+                          key={media.id}
+                          type="button"
+                          onClick={() => setViewerMedia(media)}
+                          className="relative rounded-xl overflow-hidden aspect-square glass border border-fairy-border/30"
+                        >
+                          {media.type === "video" ? (
+                            <video src={media.dataUrl} className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={media.dataUrl} alt={media.name} className="w-full h-full object-cover" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer actions */}
@@ -158,6 +203,39 @@ export function EntryModal({ entry, onClose, onEdit }: EntryModalProps) {
               </div>
             </div>
           </motion.div>
+
+          <AnimatePresence>
+            {viewerMedia && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[70] bg-black/90"
+                  onClick={() => setViewerMedia(null)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="fixed inset-0 z-[71] flex items-center justify-center p-4"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setViewerMedia(null)}
+                    className="absolute top-4 right-4 glass rounded-xl p-2 text-fairy-text"
+                  >
+                    <X size={18} />
+                  </button>
+                  {viewerMedia.type === "video" ? (
+                    <video src={viewerMedia.dataUrl} controls autoPlay className="max-w-full max-h-full rounded-2xl" />
+                  ) : (
+                    <img src={viewerMedia.dataUrl} alt={viewerMedia.name} className="max-w-full max-h-full rounded-2xl" />
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>

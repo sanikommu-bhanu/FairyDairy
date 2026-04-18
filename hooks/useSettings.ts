@@ -1,4 +1,5 @@
 import { useAppStore } from "@/store/app-store"
+import type { AppTheme } from "@/types"
 
 export function useSettings() {
   const { settings, updateSettings } = useAppStore()
@@ -11,7 +12,7 @@ export function useSettings() {
     updateSettings({ displayName: name })
   }
 
-  const setTheme = (theme: "dark" | "auto") => {
+  const setTheme = (theme: AppTheme) => {
     updateSettings({ theme })
   }
 

@@ -7,6 +7,7 @@ import { Save, X, ChevronDown, Tag, Cloud, Sparkles, Heart, Check } from "lucide
 import { useAppStore } from "@/store/app-store"
 import { MoodSelector } from "./MoodSelector"
 import { AIToolbar } from "@/features/ai/AIToolbar"
+import { MediaPicker } from "@/features/media/MediaPicker"
 import { MagicButton } from "@/components/ui/MagicButton"
 import { showToast } from "@/components/ui/Toast"
 import { countWords, cn } from "@/lib/utils"
@@ -32,6 +33,7 @@ export function EntryEditor() {
   const [tags, setTags] = useState<string[]>(existing?.tags || [])
   const [tagInput, setTagInput] = useState("")
   const [favorite, setFavorite] = useState(existing?.favorite || false)
+  const [mediaIds, setMediaIds] = useState<string[]>(existing?.mediaIds || [])
   const [showExtras, setShowExtras] = useState(false)
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle")
   const [activeTab, setActiveTab] = useState<"write" | "enhanced">("write")
@@ -62,7 +64,7 @@ export function EntryEditor() {
       weather,
       gratitude: gratitude || undefined,
       favorite,
-      mediaIds: [],
+      mediaIds,
       isDraft: true,
       wordCount: countWords(rawText),
     }
@@ -71,7 +73,7 @@ export function EntryEditor() {
     }
     setSaveState("saved")
     setTimeout(() => setSaveState("idle"), 2000)
-  }, [rawText, title, enhancedText, mood, tags, weather, gratitude, favorite, editId, existing, updateEntry])
+  }, [rawText, title, enhancedText, mood, tags, weather, gratitude, favorite, mediaIds, editId, existing, updateEntry])
 
   useEffect(() => {
     clearTimeout(autoSaveTimer.current)
@@ -93,7 +95,7 @@ export function EntryEditor() {
       weather,
       gratitude: gratitude || undefined,
       favorite,
-      mediaIds: [],
+      mediaIds,
       isDraft: asDraft,
       wordCount: countWords(rawText),
     }
@@ -262,6 +264,11 @@ export function EntryEditor() {
       {/* AI Toolbar */}
       <div className="mb-4">
         <AIToolbar text={activeTab === "write" ? rawText : enhancedText} onResult={handleAIResult} />
+      </div>
+
+      {/* Media attachments */}
+      <div className="mb-4">
+        <MediaPicker mediaIds={mediaIds} onChange={setMediaIds} />
       </div>
 
       {/* Extra fields toggle */}

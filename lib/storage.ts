@@ -30,14 +30,16 @@ export function saveEntries(entries: Entry[]): void {
 // ─── Settings ─────────────────────────────────────────────────
 export const DEFAULT_SETTINGS: AppSettings = {
   pinHash: null,
+  pinLength: 4,
   hasOnboarded: false,
   animationsEnabled: true,
-  theme: "dark",
+  theme: "fairy-purple",
   streakDays: 0,
   longestStreak: 0,
   lastEntryDate: null,
   reminderEnabled: false,
   reminderTime: "20:00",
+  biometricEnabled: false,
 }
 
 export function loadSettings(): AppSettings {
@@ -45,7 +47,18 @@ export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (!raw) return DEFAULT_SETTINGS
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+    const parsed = JSON.parse(raw) as Partial<AppSettings>
+    const pinLength = parsed.pinLength === 6 ? 6 : 4
+    const allowedThemes: AppSettings["theme"][] = ["fairy-purple", "rose-pink", "ocean-blue", "midnight-dark"]
+    const theme = allowedThemes.includes(parsed.theme as AppSettings["theme"])
+      ? (parsed.theme as AppSettings["theme"])
+      : DEFAULT_SETTINGS.theme
+    return {
+      ...DEFAULT_SETTINGS,
+      ...parsed,
+      pinLength,
+      theme,
+    }
   } catch {
     return DEFAULT_SETTINGS
   }
@@ -65,6 +78,8 @@ export function clearAllData(): void {
   localStorage.removeItem(ENTRIES_KEY)
   localStorage.removeItem(SETTINGS_KEY)
   localStorage.removeItem("fairy_pin_hash")
+  localStorage.removeItem("fairy_pin_length")
+  localStorage.removeItem("fairy_lock_state")
 }
 
 // ─── IndexedDB Media ─────────────────────────────────────────
@@ -120,4 +135,33 @@ export async function deleteMedia(id: string): Promise<void> {
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error)
   })
+}
+
+export async function clearAllMedia(): Promise<void> {
+  const db = await openDB()
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MEDIA_STORE, "readwrite")
+    tx.objectStore(MEDIA_STORE).clear()
+    tx.oncomplete = () => resolve()
+    tx.onerror = () => reject(tx.error)
+  })
+}
+
+export async function getStorageStats(entries: Entry[]): Promise<{
+  entryCount: number
+  mediaCount: number
+  entriesBytes: number
+  mediaBytes: number
+  totalBytes: number
+}> {
+  const allMedia = await loadAllMedia()
+  const entriesBytes = new Blob([JSON.stringify(entries)]).size
+  const mediaBytes = allMedia.reduce((sum, m) => sum + m.size, 0)
+  return {
+    entryCount: entries.length,
+    mediaCount: allMedia.length,
+    entriesBytes,
+    mediaBytes,
+    totalBytes: entriesBytes + mediaBytes,
+  }
 }
